@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Закладки</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: linear-gradient(to bottom right, #121212, #1e1e1e);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+
+    .app-wrapper {
+      width: 90%;
+      max-width: 900px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      box-shadow: 0 16px 60px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(12px);
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 28px;
+      font-weight: 500;
+      margin-bottom: 10px;
+    }
+
+    .form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .form input, .form button {
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 16px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.07);
+      color: white;
+      backdrop-filter: blur(8px);
+    }
+
+    .form input {
+      flex: 1;
+      min-width: 150px;
+    }
+
+    .form button {
+      cursor: pointer;
+      background-color: rgba(0, 122, 255, 0.25);
+      transition: background 0.3s ease;
+    }
+
+    .form button:hover {
+      background-color: rgba(0, 122, 255, 0.5);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .tab {
+      background: rgba(255,255,255,0.07);
+      border-radius: 12px;
+      padding: 8px 14px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+
+    .tab.active {
+      background: rgba(0, 122, 255, 0.3);
+    }
+
+    .tab .close-tab {
+      background: none;
+      border: none;
+      color: #ff6666;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .content {
+      min-height: 100px;
+      text-align: center;
+    }
+
+    .bookmark-link {
+      padding: 20px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      font-size: 16px;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
+    }
+
+    .bookmark-link a {
+      color: #00aaff;
+      text-decoration: underline;
+    }
+
+    ::placeholder {
+      color: #bbb;
+    }
+
+    .social-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 14px;
+      margin-top: 20px;
+    }
+
+    .social-card {
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 20px 10px;
+      text-align: center;
+      color: white;
+      text-decoration: none;
+      font-size: 16px;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
+      transition: background 0.3s ease;
+    }
+
+    .social-card:hover {
+      background: rgba(0, 122, 255, 0.2);
+    }
+
+    @media (max-width: 600px) {
+      .form {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-wrapper">
+    <h1>🔖 Мои закладки</h1>
+
+    <div class="form">
+      <input type="text" id="bookmarkTitle" placeholder="Название" />
+      <input type="url" id="bookmarkURL" placeholder="https://example.com" />
+      <input type="text" id="bookmarkComment" placeholder="Комментарий (необязательно)" />
+      <button id="addBookmark">Добавить</button>
+    </div>
+
+    <div class="tabs" id="tabsContainer"></div>
+    <div class="content" id="contentContainer">
+      <p style="color: #888;">Выберите вкладку...</p>
+    </div>
+  </div>
+
+  <script>
+    window.tabAPI = {
+      getBookmarks: async () => {
+        return JSON.parse(localStorage.getItem("bookmarks") || "[]");
+      },
+      saveBookmark: async (bookmark) => {
+        const bookmarks = await window.tabAPI.getBookmarks();
+        const id = bookmarks.length ? Math.max(...bookmarks.map(b => b.id)) + 1 : 1;
+        bookmark.id = id;
+        bookmarks.push(bookmark);
+        localStorage.setItem("bookmarks", JSON.stringify(bookmarks));
+        return id;
+      },
+      deleteBookmark: async (id) => {
+        const bookmarks = await window.tabAPI.getBookmarks();
+        const filtered = bookmarks.filter(b => b.id !== id);
+        localStorage.setItem("bookmarks", JSON.stringify(filtered));
+      }
+    };
+
+    const titleInput = document.getElementById("bookmarkTitle");
+    const urlInput = document.getElementById("bookmarkURL");
+    const commentInput = document.getElementById("bookmarkComment");
+    const addBtn = document.getElementById("addBookmark");
+    const tabsContainer = document.getElementById("tabsContainer");
+    const contentContainer = document.getElementById("contentContainer");
+
+    let currentTabId = null;
+
+    async function loadBookmarks() {
+      const bookmarks = await window.tabAPI.getBookmarks();
+      window._bookmarkList = bookmarks;
+
+      tabsContainer.innerHTML = "";
+
+      // Добавляем вкладку соцсетей
+      const socialTab = document.createElement("div");
+      socialTab.className = "tab";
+      socialTab.id = "socialTab";
+      socialTab.innerHTML = "🌐 Соцсети";
+      tabsContainer.appendChild(socialTab);
+
+      contentContainer.innerHTML = "<p style='color:#888;'>Выберите вкладку...</p>";
+
+      bookmarks.forEach(b => {
+        const tab = document.createElement("div");
+        tab.className = "tab";
+        tab.dataset.id = b.id;
+        tab.dataset.url = b.url;
+        tab.innerHTML = `
+          <span>${b.title}</span>
+          <button class="close-tab" data-id="${b.id}">✖</button>
+        `;
+        tabsContainer.appendChild(tab);
+      });
+
+      updateActiveTab();
+    }
+
+    function openBookmark(id, url) {
+      currentTabId = id;
+      updateActiveTab();
+
+      const bookmark = window._bookmarkList.find(b => b.id === id);
+      contentContainer.innerHTML = `
+        <div class="bookmark-link">
+          <p><strong>Ссылка:</strong></p>
+          <a href="${url}" target="_blank">${url}</a>
+          ${bookmark.comment ? `<p><strong>Комментарий:</strong> ${bookmark.comment}</p>` : ""}
+        </div>
+      `;
+    }
+
+    function updateActiveTab() {
+      document.querySelectorAll(".tab").forEach(tab => {
+        const id = tab.dataset.id || tab.id;
+        tab.classList.toggle("active", id == currentTabId || (id === "socialTab" && currentTabId === "social"));
+      });
+    }
+
+    async function addBookmark() {
+      const title = titleInput.value.trim();
+      const url = urlInput.value.trim();
+      const comment = commentInput.value.trim();
+
+      if (!title || !url) {
+        alert("Введите название и ссылку.");
+        return;
+      }
+
+      try {
+        new URL(url);
+      } catch {
+        alert("Некорректный URL.");
+        return;
+      }
+
+      const newId = await window.tabAPI.saveBookmark({ title, url, comment });
+
+      titleInput.value = "";
+      urlInput.value = "";
+      commentInput.value = "";
+      currentTabId = newId;
+
+      await loadBookmarks();
+    }
+
+    tabsContainer.addEventListener("click", async (e) => {
+      const id = parseInt(e.target.dataset.id, 10);
+
+      if (e.target.classList.contains("close-tab")) {
+        if (currentTabId === id) currentTabId = null;
+        await window.tabAPI.deleteBookmark(id);
+        await loadBookmarks();
+        return;
+      }
+
+      if (e.target.id === "socialTab" || e.target.closest("#socialTab")) {
+        currentTabId = "social";
+        updateActiveTab();
+        contentContainer.innerHTML = `
+          <div class="social-grid">
+            ${[
+              { name: "VK", url: "https://vk.com", emoji: "📘" },
+              { name: "Telegram", url: "https://t.me", emoji: "✈️" },
+              { name: "YouTube", url: "https://youtube.com", emoji: "📺" },
+              { name: "Instagram", url: "https://instagram.com", emoji: "📸" },
+              { name: "Twitter (X)", url: "https://x.com", emoji: "🐦" }
+            ]
+              .map(
+                s => `
+                <a class="social-card" href="${s.url}" target="_blank">
+                  <div>${s.emoji}</div>
+                  <div>${s.name}</div>
+                </a>`
+              )
+              .join("")}
+          </div>
+        `;
+        return;
+      }
+
+      const tab = e.target.closest(".tab");
+      if (tab && tab.dataset.id) openBookmark(+tab.dataset.id, tab.dataset.url);
+    });
+
+    addBtn.addEventListener("click", addBookmark);
+
+    [titleInput, urlInput, commentInput].forEach(input => {
+      input.addEventListener("keydown", e => {
+        if (e.key === "Enter") addBookmark();
+      });
+    });
+
+    loadBookmarks();
+  </script>
+</body>
+</html>

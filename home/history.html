@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>История браузера и пароли</title>
+  <style>
+    :root {
+      --bg: #1e1e1e;
+      --fg: #ffffff;
+      --accent: #0a84ff;
+      --item-bg: rgba(255, 255, 255, 0.05);
+      --item-hover: rgba(255, 255, 255, 0.08);
+      --border: rgba(255, 255, 255, 0.15);
+      --radius: 10px;
+      --card-bg: rgba(255, 255, 255, 0.04);
+      --shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 800px;
+      padding: 30px 20px 60px;
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+    }
+
+    h1, h2 {
+      margin: 0;
+      font-size: 26px;
+    }
+
+    #controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+
+    select, button, input {
+      padding: 10px 14px;
+      font-size: 14px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--item-bg);
+      color: var(--fg);
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    button:hover {
+      background: var(--accent);
+      color: white;
+      cursor: pointer;
+    }
+
+    input {
+      flex: 1;
+      min-width: 100px;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 40vh;
+      overflow-y: auto;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      background: var(--card-bg);
+      padding: 10px 14px;
+    }
+
+    li {
+      background: var(--card-bg);
+      padding: 14px 18px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      transition: background 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    li:hover {
+      background: var(--item-hover);
+    }
+
+    a {
+      color: #4ea1ff;
+      text-decoration: none;
+      word-break: break-all;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    small {
+      color: #aaa;
+      font-size: 12px;
+    }
+
+    #empty, #emptyPasswords {
+      color: #888;
+      font-style: italic;
+      margin-top: 10px;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    /* Красивый скроллбар */
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.35);
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    /* Responsive password form */
+    #passwordForm {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    #passwordForm input {
+      flex: 1 1 calc(33% - 10px);
+      min-width: 140px;
+      background: var(--item-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--fg);
+      padding: 10px 14px;
+      font-size: 14px;
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+    #passwordForm input:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: rgba(10, 132, 255, 0.15);
+    }
+    #passwordForm button {
+      flex: 1 1 100px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s ease;
+      border-radius: var(--radius);
+      padding: 10px 14px;
+      font-size: 14px;
+    }
+    #passwordForm button:hover {
+      background: #006fd6;
+    }
+
+    /* Кнопки "Показать" и "Удалить" */
+    #passwordList button {
+      background: var(--item-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--fg);
+      padding: 6px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.2s ease, border-color 0.2s ease;
+      align-self: flex-start;
+    }
+    #passwordList button:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+    #passwordList input[readonly] {
+      background: none;
+      border: none;
+      color: #ccc;
+      font-family: monospace;
+      font-size: 14px;
+      width: 180px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🕓 История</h1>
+
+    <div id="controls">
+      <select id="clearMode">
+        <option value="history">Удалить только историю</option>
+        <option value="all">Удалить всё: история, пароли, автозаполнение, вкладки</option>
+      </select>
+      <button id="clearBtn">Очистить</button>
+    </div>
+
+    <ul id="historyList"></ul>
+    <div id="empty" style="display: none;">История пуста</div>
+
+    <h2>🔐 Менеджер паролей</h2>
+
+    <form id="passwordForm">
+      <input type="text" id="site" placeholder="Сайт" required />
+      <input type="text" id="login" placeholder="Логин" required />
+      <input type="password" id="password" placeholder="Пароль" required />
+      <button type="submit">Добавить</button>
+    </form>
+
+    <ul id="passwordList"></ul>
+    <div id="emptyPasswords" style="display: none;">Пока нет сохранённых паролей</div>
+  </div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    const list = document.getElementById('historyList');
+    const empty = document.getElementById('empty');
+    const clearBtn = document.getElementById('clearBtn');
+    const clearMode = document.getElementById('clearMode');
+
+    function renderHistory(history) {
+      list.innerHTML = '';
+      if (!history || history.length === 0) {
+        empty.style.display = 'block';
+        return;
+      }
+
+      empty.style.display = 'none';
+
+      for (const entry of history.reverse()) {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <a href="#">${entry.title || entry.url}</a>
+          <small>${new Date(entry.date).toLocaleString()}</small>
+        `;
+        li.querySelector('a').onclick = (e) => {
+          e.preventDefault();
+          ipcRenderer.send('open-link-in-tab', entry.url);
+        };
+        list.appendChild(li);
+      }
+    }
+
+    ipcRenderer.invoke('get-history').then(renderHistory);
+
+    clearBtn.addEventListener('click', () => {
+      const mode = clearMode.value;
+      const confirmText =
+        mode === 'history'
+          ? 'Вы действительно хотите удалить только историю?'
+          : 'Вы точно хотите удалить всё: историю, пароли, автозаполнение, вкладки?';
+
+      if (!confirm(confirmText)) return;
+
+      ipcRenderer.invoke('clear-history', mode).then(() => {
+        renderHistory([]);
+        if (mode === 'all') renderPasswords([]);
+      });
+    });
+
+    // ====================
+    // Пароли
+    const passwordForm = document.getElementById('passwordForm');
+    const passwordList = document.getElementById('passwordList');
+    const emptyPasswords = document.getElementById('emptyPasswords');
+
+    function renderPasswords(passwords) {
+      passwordList.innerHTML = '';
+      if (!passwords || passwords.length === 0) {
+        emptyPasswords.style.display = 'block';
+        return;
+      }
+
+      emptyPasswords.style.display = 'none';
+
+      for (const entry of passwords.reverse()) {
+        const li = document.createElement('li');
+        li.style.cssText = `
+          background: var(--card-bg);
+          padding: 12px 16px;
+          border-radius: var(--radius);
+          margin-bottom: 10px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          box-shadow: var(--shadow);
+        `;
+
+        const strong = document.createElement('strong');
+        strong.textContent = entry.site;
+
+        const loginSpan = document.createElement('span');
+        loginSpan.style.fontSize = '14px';
+        loginSpan.textContent = 'Логин: ' + entry.login;
+
+        // Пароль с возможностью показать/скрыть
+        const passwordWrapper = document.createElement('span');
+        passwordWrapper.style.color = '#aaa';
+        passwordWrapper.style.fontSize = '12px';
+        passwordWrapper.textContent = 'Пароль: ';
+
+        const passwordInput = document.createElement('input');
+        passwordInput.type = 'password';
+        passwordInput.value = entry.password;
+        passwordInput.readOnly = true;
+        passwordInput.style.background = 'none';
+        passwordInput.style.border = 'none';
+        passwordInput.style.color = '#ccc';
+        passwordInput.style.fontFamily = 'monospace';
+        passwordInput.style.fontSize = '14px';
+        passwordInput.style.width = '180px';
+
+        passwordWrapper.appendChild(passwordInput);
+
+        const toggleBtn = document.createElement('button');
+        toggleBtn.textContent = '👁 Показать';
+        toggleBtn.style.marginTop = '4px';
+        toggleBtn.style.alignSelf = 'flex-start';
+        toggleBtn.onclick = () => {
+          if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            toggleBtn.textContent = '🙈 Скрыть';
+          } else {
+            passwordInput.type = 'password';
+            toggleBtn.textContent = '👁 Показать';
+          }
+        };
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = '🗑 Удалить';
+        deleteBtn.style.marginTop = '6px';
+        deleteBtn.style.alignSelf = 'flex-start';
+        deleteBtn.onclick = () => {
+          if (!confirm('Удалить этот пароль?')) return;
+          ipcRenderer.invoke('delete-password', entry.id).then(loadPasswords);
+        };
+
+        li.appendChild(strong);
+        li.appendChild(loginSpan);
+        li.appendChild(passwordWrapper);
+        li.appendChild(toggleBtn);
+        li.appendChild(deleteBtn);
+
+        passwordList.appendChild(li);
+      }
+    }
+
+    passwordForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const site = document.getElementById('site').value.trim();
+      const login = document.getElementById('login').value.trim();
+      const password = document.getElementById('password').value.trim();
+
+      if (!site || !login || !password) return;
+
+      ipcRenderer.invoke('add-password', { site, login, password }).then(() => {
+        document.getElementById('site').value = '';
+        document.getElementById('login').value = '';
+        document.getElementById('password').value = '';
+        loadPasswords();
+      });
+    });
+
+    function loadPasswords() {
+      ipcRenderer.invoke('get-passwords').then(renderPasswords);
+    }
+
+    loadPasswords();
+  </script>
+</body>
+</html>

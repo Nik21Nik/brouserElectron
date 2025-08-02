@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Домашняя вкладка</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <style>
+   :root {
+  --fg-light: #222;
+  --fg-dark: #fff;
+  --accent: #007aff;
+  --tile-bg-light: rgba(255 255 255 / 0.9);
+  --tile-bg-dark: rgba(255 255 255 / 0.1);
+  --tile-hover-light: rgba(0 122 255 / 0.15);
+  --tile-hover-dark: rgba(0 122 255 / 0.3);
+  --panel-width: 280px;
+  --panel-gap: 10px;
+
+  --widget-gap: -200px; /* отступ между виджетами */
+  --widget-left: 20px;
+  --widget-width: 280px;
+  --widget-max-height: 250px;
+  }
+
+  html, body {
+    margin: 0; padding: 0;
+    height: 100%;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  body.light {
+    background-color: #f0f0f0;
+    color: var(--fg-light);
+  }
+
+  body.dark {
+    background-color: #121212;
+    color: var(--fg-dark);
+  }
+
+  #background {
+    position: fixed;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    z-index: -1;
+    filter: blur(2px);
+    transform: scale(1.02);
+    transition: filter 0.5s ease;
+  }
+
+  #searchBox {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60%;
+    max-width: 600px;
+    padding: 14px 20px;
+    font-size: 18px;
+    border-radius: 14px;
+    border: none;
+    text-align: center;
+    outline: none;
+    background: rgba(255 255 255 / 0.3);
+    backdrop-filter: blur(10px);
+    color: inherit;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    transition: background-color 0.3s ease, color 0.3s ease;
+    z-index: 10;
+  }
+
+  body.light #searchBox {
+    background: rgba(255 255 255 / 0.7);
+    color: var(--fg-light);
+  }
+
+  body.dark #searchBox {
+    background: rgba(0 0 0 / 0.3);
+    color: var(--fg-dark);
+  }
+
+  #panelHandle {
+    position: fixed;
+    top: 50%;
+    right: var(--panel-gap);
+    transform: translateY(-50%);
+    border: none;
+    background: none;
+    cursor: pointer;
+    z-index: 1001;
+    padding: 0;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.6s ease;
+  }
+
+  #panelHandle svg {
+    width: 32px;
+    height: 32px;
+    transition: fill 0.3s ease;
+    will-change: transform;
+  }
+
+  body.light #panelHandle svg { fill: #000; }
+  body.dark #panelHandle svg { fill: #fff; }
+
+  #panelHandle.rotating svg {
+    animation: spin 1.5s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg);}
+    to { transform: rotate(360deg);}
+  }
+
+  #sidePanel {
+    position: fixed;
+    top: 50%;
+    right: calc(-1 * var(--panel-width));
+    transform: translateY(-50%);
+    width: var(--panel-width);
+    height: 320px;
+    background: rgba(255 255 255 / 0.35);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    box-shadow: -6px 0 20px rgba(0,0,0,0.15);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    transition: right 0.4s ease;
+    z-index: 1000;
+    overflow: hidden;
+    max-width: 90vw;
+  }
+
+  body.dark #sidePanel {
+    background: rgba(30 30 30 / 0.4);
+    box-shadow: -6px 0 30px rgba(0,0,0,0.8);
+  }
+
+  #sidePanel.open {
+    right: calc(36px + var(--panel-gap) * 2);
+  }
+
+  .tile {
+    width: 200px;
+    max-width: 90vw;
+    padding: 14px 20px;
+    text-align: center;
+    border-radius: 14px;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(10px);
+    transition:
+      opacity 0.35s ease,
+      transform 0.35s ease,
+      box-shadow 0.3s ease,
+      background-color 0.3s ease,
+      color 0.3s ease;
+    user-select: none;
+    background: var(--tile-bg-light);
+    color: var(--fg-light);
+    margin: 0 auto;
+  }
+
+  body.dark .tile {
+    background: var(--tile-bg-dark);
+    color: var(--fg-dark);
+  }
+
+  .tile.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .tile:hover {
+    background-color: var(--tile-hover-light);
+    box-shadow: 0 0 8px var(--accent), 0 0 15px var(--accent);
+    color: var(--accent);
+  }
+
+  body.dark .tile:hover {
+    background-color: var(--tile-hover-dark);
+    color: var(--accent);
+    box-shadow: 0 0 10px var(--accent), 0 0 20px var(--accent);
+  }
+
+  input[type="file"] {
+    display: none;
+  }
+
+  #widgetButton {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1001;
+    background: rgba(255 255 255 / 0.3);
+    backdrop-filter: blur(12px);
+    color: inherit;
+    border: none;
+    border-radius: 14px;
+    padding: 12px 18px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  body.dark #widgetButton {
+    background: rgba(0 0 0 / 0.4);
+    color: var(--fg-dark);
+  }
+
+  #widgetButton:hover {
+    background-color: var(--tile-hover-light);
+    box-shadow: 0 0 10px var(--accent), 0 0 15px var(--accent);
+  }
+
+  body.dark #widgetButton:hover {
+    background-color: var(--tile-hover-dark);
+  }
+
+  #widgetModal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    background: rgba(0, 0, 0, 0.5);
+  }
+
+  #widgetModal.active {
+    display: flex;
+  }
+
+  #widgetModalContent {
+    background: rgba(255 255 255 / 0.8);
+    backdrop-filter: blur(20px);
+    padding: 30px;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 500px;
+    text-align: center;
+    color: var(--fg-light);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  body.dark #widgetModalContent {
+    background: rgba(30 30 30 / 0.85);
+    color: var(--fg-dark);
+  }
+
+  /* Стили для чекбоксов виджетов */
+
+  .widget-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    padding: 12px 16px;
+    background: var(--tile-bg-light);
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    user-select: none;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    color: var(--fg-light);
+    position: relative;
+  }
+
+  body.dark .widget-checkbox {
+    background: var(--tile-bg-dark);
+    color: var(--fg-dark);
+  }
+
+  .widget-checkbox:hover {
+    background-color: var(--tile-hover-light);
+    color: var(--accent);
+    box-shadow: 0 0 8px var(--accent), 0 0 15px var(--accent);
+  }
+
+  body.dark .widget-checkbox:hover {
+    background-color: var(--tile-hover-dark);
+    color: var(--accent);
+    box-shadow: 0 0 10px var(--accent), 0 0 20px var(--accent);
+  }
+
+  .widget-checkbox input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--fg-light);
+    border-radius: 6px;
+    background-color: transparent;
+    cursor: pointer;
+    position: relative;
+    transition: border-color 0.3s ease, background-color 0.3s ease;
+    margin: 0;
+    flex-shrink: 0;
+  }
+
+  body.dark .widget-checkbox input[type="checkbox"] {
+    border-color: var(--fg-dark);
+  }
+
+  .widget-checkbox input[type="checkbox"]:checked {
+    background-color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  /* Галочка */
+  .widget-checkbox input[type="checkbox"]:checked::after {
+    content: "";
+    position: absolute;
+    top: 4px;
+    left: 8px;
+    width: 6px;
+    height: 12px;
+    border: solid white;
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg);
+  }
+
+  .close-btn {
+    background: transparent;
+    border: none;
+    color: inherit;
+    font-size: 18px;
+    cursor: pointer;
+    align-self: flex-end;
+  }
+
+  /* Виджеты */
+
+  #widgetClock, #widgetWeather, #widgetCalendar, #widgetBookmarks {
+    position: absolute;
+    left: 2vw;
+    width: min(30vw, 300px);
+    max-height: 25vh;
+    font-size: 1.2rem;
+    padding: 15px 20px;
+    border-radius: 18px;
+    backdrop-filter: blur(18px);
+    background: var(--tile-bg-light);
+    color: var(--fg-light);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+    overflow-y: auto;
+    user-select: none;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  body.dark #widgetClock,
+  body.dark #widgetWeather,
+  body.dark #widgetCalendar,
+  body.dark #widgetBookmarks {
+    background: var(--tile-bg-dark);
+    color: var(--fg-dark);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+  }
+
+  #widgetClock {
+    top: 60px;
+  }
+
+  #widgetWeather {
+    top: calc(59px + var(--widget-max-height) + var(--widget-gap));
+  }
+
+  #widgetCalendar {
+    top: calc(60px + var(--widget-max-height)*2 + var(--widget-gap)*2);
+  }
+
+  #widgetBookmarks {
+    top: calc(82px + var(--widget-max-height)*3 + var(--widget-gap)*3);
+    max-height: 220px;
+    overflow-y: auto;
+  }
+
+  /* ----------------
+    Закладки (#widgetBookmarks)
+  ------------------ */
+
+  #widgetBookmarks ul#bookmarksList {
+    margin: 8px 0 0 0;
+    padding-left: 0;
+    list-style: none;
+    max-height: 220px;
+    overflow-y: auto;
+    font-weight: 500;
+    font-size: 15px;
+    color: inherit;
+    border-top: 1px solid rgba(255,255,255,0.15);
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    background: rgba(255 255 255 / 0.05);
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
+  }
+
+  #widgetBookmarks ul#bookmarksList li {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 15px;
+    border-bottom: 1px solid rgba(255 255 255 / 0.1);
+    color: var(--fg-light);
+    cursor: default; /* Ховер убран */
+    user-select: text;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  body.dark #widgetBookmarks ul#bookmarksList li {
+    color: #ccc;
+  }
+
+  #widgetBookmarks ul#bookmarksList li:last-child {
+    border-bottom: none;
+  }
+
+  #widgetBookmarks ul#bookmarksList li::before {
+    content: "🔗";
+    flex-shrink: 0;
+    margin-right: 8px;
+    position: absolute;
+    margin-left: -24px;
+    user-select: none;
+  }
+
+  /* Ссылка в закладке */
+  #widgetBookmarks ul#bookmarksList li a {
+    color: inherit;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    user-select: text;
+    transition: color 0.3s ease;
+    outline: none;
+    cursor: pointer;
+  }
+
+  /* Ховер и фокус ссылки */
+  #widgetBookmarks ul#bookmarksList li a:hover {
+    color: var(--accent);
+    text-decoration: underline;
+  }
+
+  #widgetBookmarks ul#bookmarksList li a:focus {
+    outline: none;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  /* Комментарий в закладке */
+  .bookmark-comment {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--fg-light);
+    white-space: normal;
+    overflow-wrap: break-word;
+    margin-left: 24px;
+    user-select: text;
+  }
+
+  body.dark .bookmark-comment {
+    color: #bbb;
+  }
+
+  /* Scrollbar для списков */
+  #widgetBookmarks ul#bookmarksList::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  #widgetBookmarks ul#bookmarksList::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  #widgetBookmarks ul#bookmarksList::-webkit-scrollbar-thumb {
+    background-color: rgba(0,0,0,0.2);
+    border-radius: 4px;
+  }
+
+  body.dark #widgetBookmarks ul#bookmarksList::-webkit-scrollbar-thumb {
+    background-color: rgba(255,255,255,0.2);
+  }
+
+  #searchBox::placeholder {
+    color: var(--placeholder-color);
+  }
+
+  #widgetBookmarks::-webkit-scrollbar {
+    width: 0;
+    background: transparent;
+  }
+  /* Скрытие скроллбара в Firefox */
+  #widgetBookmarks {
+    scrollbar-width: none; /* Firefox */
+  }
+
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+  }
+
+  #background.blur {
+    filter: blur(var(--background-blur, 0px));
+    transition: filter 0.3s ease;
+  }
+
+  body.dark {
+    background-color: #121212;
+    color: #eee;
+  }
+
+  body.light {
+    background-color: #fff;
+    color: #000;
+  }
+
+  /* Кнопка настроек */
+  #openSettings {
+    cursor: pointer;
+  }
+  </style>
+</head>
+<body class="dark">
+  <div id="background"></div>
+
+  <video id="backgroundVideo" autoplay muted loop playsinline style="position: absolute; width: 100%; height: 100%; object-fit: cover; z-index: -1;"></video>
+
+  <input id="searchBox" type="text" placeholder="Введите запрос и нажмите Enter" />
+
+  <button id="panelHandle" title="Меню" aria-label="Меню">
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M12 15.5A3.5 3.5 0 1 0 12 8.5a3.5 3.5 0 0 0 0 7zm7.43-2.25c..." />
+    </svg>
+  </button>
+
+  <div id="sidePanel" role="menu" aria-hidden="true">
+    <div class="tile" id="changeBackground" role="menuitem" tabindex="0"> Фон</div>
+    <div class="tile" id="openBookmarks" role="menuitem" tabindex="0"> Закладки</div>
+    <div class="tile" id="openHistory" role="menuitem" tabindex="0"> История</div>
+    <div class="tile" id="openSettings" role="menuitem" tabindex="0"> Настройки</div>
+    <div class="tile" id="openVPNModal" role="menuitem" tabindex="0">VPN</div>
+    <input type="file" id="fileInput" accept="image/*,video/*" style="display: none" />
+  </div>
+
+  <button id="widgetButton"> Виджеты</button>
+
+  <div id="widgetModal" role="dialog" aria-modal="true" aria-labelledby="widgetModalTitle">
+    <div id="widgetModalContent">
+      <button class="close-btn" title="Закрыть" aria-label="Закрыть окно виджетов">✖</button>
+      <h2 id="widgetModalTitle" style="margin: 0 0 15px 0;">Выберите виджеты</h2>
+      <label class="widget-checkbox">
+        <input type="checkbox" name="widget" value="clock" data-widget="clock" />
+         Часы
+      </label>
+      <label class="widget-checkbox">
+        <input type="checkbox" name="widget" value="weather" data-widget="weather" />
+         Погода
+      </label>
+      <label class="widget-checkbox">
+        <input type="checkbox" name="widget" value="calendar" data-widget="calendar" />
+         Календарь
+      </label>
+      <label class="widget-checkbox">
+        <input type="checkbox" name="widget" value="bookmarks" data-widget="bookmarks" />
+         Закладки
+      </label>
+    </div>
+  </div>
+
+<div id="vpnModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="vpnTitle" style="display:none;">
+  <div id="vpnContent" style="background:#222; color:#eee; padding: 20px; border-radius: 8px; max-width: 400px; position: relative;">
+    <button id="vpnClose" class="close-btn" aria-label="Закрыть">✖</button>
+    <h2 id="vpnTitle" style="margin-bottom: 15px;">Настройки VPN</h2>
+
+    <label>
+      <input type="checkbox" id="vpnToggle" />
+      Включить VPN
+    </label>
+
+    <div style="margin-top: 20px;">
+      <label for="proxyList">Прокси (один на строку, формат: `ip:port`):</label>
+      <textarea id="proxyList" rows="5" style="width:100%;"></textarea>
+    </div>
+
+    <div style="margin-top: 15px; display:flex; gap:10px;">
+      <button id="saveProxyList">💾 Сохранить</button>
+      <button id="applyProxy">🚀 Применить</button>
+    </div>
+  </div>
+</div>
+
+<div id="settingsModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" style="display:none;">
+  <div id="settingsContent" style="background:#222; color:#eee; padding: 20px; border-radius: 8px; max-width: 400px; margin: 100px auto; position: relative;">
+    <button id="settingsClose" class="close-btn" title="Закрыть" aria-label="Закрыть окно настроек" style="position:absolute; top:10px; right:10px; font-size: 20px; background:none; border:none; color:#eee; cursor:pointer;">✖</button>
+    <h2 id="settingsTitle" style="margin-bottom: 15px;"> Настройки</h2>
+
+    <label for="blurRange">Фон: размытие (blur) <span id="blurValue">0px</span></label>
+    <input type="range" id="blurRange" min="0" max="20" step="1" value="0" style="width:100%; margin-bottom: 20px;" />
+
+    <label for="themeToggle">Тема</label>
+    <select id="themeToggle" style="width:100%; padding: 5px 8px; margin-bottom: 20px;">
+      <option value="light">Светлая</option>
+      <option value="dark">Тёмная</option>
+    </select>
+  </div>
+</div>
+
+  <!-- Виджеты -->
+  <div id="widgetClock"> <span id="clockTime">12:00:00</span></div>
+  <div id="widgetWeather" style="display:none;"> <span id="weatherContent"></span></div>
+  <div id="widgetCalendar"></div>
+  <div id="widgetBookmarks">
+    <div><strong style="color:#fff"> Закладки</strong></div>
+    <ul id="bookmarksList" style="margin: 8px 0 0 0; padding-left: 16px; list-style: disc; color: inherit;"></ul>
+  </div>
+  <script src="home.js"></script>
+</body>
+</html>
