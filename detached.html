@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Отдельная вкладка</title>
+  <style>
+    /* Твои стили — оставлю без изменений */
+    :root {
+      --fg-light: #222;
+      --fg-dark: #fff;
+      --accent: #007aff;
+      --tab-bg-light: rgba(255 255 255 / 0.1);
+      --tab-bg-dark: rgba(255 255 255 / 0.08);
+      --tab-hover-light: rgba(0 122 255 / 0.15);
+      --tab-hover-dark: rgba(0 122 255 / 0.3);
+      --radius: 14px;
+      --border-light: rgba(0 0 0 / 0.15);
+      --border-dark: rgba(255 255 255 / 0.1);
+      --bg-light: #f0f0f0;
+      --bg-dark: #121212;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; height: 100%;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--fg-dark);
+      display: flex; flex-direction: column;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      -webkit-font-smoothing: antialiased;
+    }
+    body.light {
+      background-color: var(--bg-light);
+      color: var(--fg-light);
+    }
+    #nav {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+      padding: 12px 18px;
+      background: rgba(255 255 255 / 0.1);
+      backdrop-filter: blur(18px);
+      border-radius: var(--radius);
+      margin: 10px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      user-select: none;
+    }
+    body.light #nav {
+      background: rgba(255 255 255 / 0.7);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    }
+    button {
+      background: var(--tab-bg-light);
+      color: var(--fg-light);
+      border: none;
+      padding: 10px 18px;
+      border-radius: var(--radius);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+      box-shadow: 0 0 8px transparent;
+      user-select: none;
+    }
+    body.dark button {
+      background: var(--tab-bg-dark);
+      color: var(--fg-dark);
+    }
+    button:hover {
+      background-color: var(--tab-hover-light);
+      color: var(--accent);
+      box-shadow: 0 0 15px var(--accent), 0 0 30px var(--accent);
+    }
+    body.dark button:hover {
+      background-color: var(--tab-hover-dark);
+      color: var(--accent);
+      box-shadow: 0 0 20px var(--accent), 0 0 40px var(--accent);
+    }
+    input {
+      flex: 1;
+      min-width: 180px;
+      padding: 14px 20px;
+      border-radius: var(--radius);
+      border: none;
+      background: rgba(255 255 255 / 0.15);
+      color: inherit;
+      font-size: 16px;
+      font-weight: 600;
+      text-align: center;
+      outline: none;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      transition: background-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+      user-select: text;
+    }
+    body.light input {
+      background: rgba(255 255 255 / 0.8);
+      color: var(--fg-light);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+    input:focus {
+      background-color: rgba(0 122 255 / 0.15);
+      color: var(--accent);
+      box-shadow: 0 0 15px var(--accent), 0 0 30px var(--accent);
+    }
+    webview {
+      flex: 1;
+      border-radius: var(--radius);
+      margin: 0 10px 10px 10px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+    /* Контекстное меню */
+    .context-menu {
+      position: fixed;
+      background: rgba(0, 0, 0, 0.85);
+      color: white;
+      padding: 10px 18px;
+      border-radius: 14px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+      z-index: 9999;
+      cursor: pointer;
+      user-select: none;
+      font-weight: 600;
+      font-size: 15px;
+      transition: background-color 0.3s ease;
+    }
+    .context-menu:hover {
+      background-color: var(--accent);
+      color: white;
+    }
+    @media (max-width: 600px) {
+      #nav {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      button, input {
+        width: 100%;
+        box-sizing: border-box;
+      }
+      webview {
+        margin: 0 10px 10px 10px;
+        border-radius: 10px;
+      }
+    }
+  </style>
+</head>
+<body class="dark">
+  <div id="nav">
+    <button id="back" title="Назад">←</button>
+    <button id="forward" title="Вперёд">→</button>
+    <button id="reload" title="Перезагрузить">⟳</button>
+    <input id="input" placeholder="Введите URL или запрос" autocomplete="off" />
+    <button id="go" title="Перейти">Перейти</button>
+    <button id="return" title="Вернуть вкладку в основной браузер">↩</button>
+  </div>
+
+  <webview id="view" partition="persist:tabs" preload="preload.js"></webview>
+
+  <script>
+    // В среде Electron
+    const { ipcRenderer } = require('electron');
+    const path = require('path');
+
+    const view = document.getElementById('view');
+    const input = document.getElementById('input');
+    const backBtn = document.getElementById('back');
+    const forwardBtn = document.getElementById('forward');
+    const reloadBtn = document.getElementById('reload');
+    const goBtn = document.getElementById('go');
+    const returnBtn = document.getElementById('return');
+
+    let currentUrl = '';
+
+    // Загрузка URL по событию из основного процесса
+    ipcRenderer.on('load-url', (_, url) => {
+      if (url && typeof url === 'string') {
+        currentUrl = url;
+        view.src = url;
+      } else {
+        const homePath = `file://${path.join(__dirname, 'home.html')}`;
+        currentUrl = homePath;
+        view.src = homePath;
+      }
+    });
+
+    // Обновление input с текущим URL вкладки
+    function updateInput() {
+      // webview не всегда может вернуть getURL(), используем src
+      try {
+        let url = view.getURL ? view.getURL() : view.src;
+        if (!url) url = currentUrl || '';
+        input.value = url.includes('home.html') ? '' : url;
+      } catch {
+        input.value = '';
+      }
+      updateNavButtons();
+    }
+
+    // Обновить доступность кнопок назад/вперёд
+    function updateNavButtons() {
+      // webview API имеет canGoBack() и canGoForward()
+      backBtn.disabled = !view.canGoBack();
+      forwardBtn.disabled = !view.canGoForward();
+    }
+
+    // Перейти по введённому адресу или поиску
+    function navigate() {
+      const val = input.value.trim();
+      if (!val) return;
+      // Проверяем, похоже ли на URL
+      let url;
+      if (/^(https?:\/\/|file:\/\/)/i.test(val)) {
+        url = val;
+      } else if (val.includes('.') && !val.includes(' ')) {
+        // Если похоже на домен, добавим http://
+        url = 'http://' + val;
+      } else {
+        // Иначе считаем поисковым запросом
+        url = `https://www.google.com/search?q=${encodeURIComponent(val)}`;
+      }
+      currentUrl = url;
+      view.src = url;
+    }
+
+    // Навешиваем события
+    goBtn.addEventListener('click', navigate);
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        navigate();
+      }
+    });
+
+    reloadBtn.addEventListener('click', () => view.reload());
+    backBtn.addEventListener('click', () => { if (view.canGoBack()) view.goBack(); });
+    forwardBtn.addEventListener('click', () => { if (view.canGoForward()) view.goForward(); });
+
+    // Кнопка возврата вкладки в основной браузер
+    returnBtn.addEventListener('click', () => {
+      try {
+        let url = view.getURL ? view.getURL() : view.src || currentUrl || '';
+        if (!url) url = currentUrl || '';
+        // Отправляем в основной процесс
+        ipcRenderer.send('return-tab-to-main', url);
+      } catch (e) {
+        console.warn('Ошибка при возврате вкладки:', e);
+      }
+      window.close();
+    });
+
+    // Обновляем адрес и кнопки при навигации внутри webview
+    view.addEventListener('did-navigate', updateInput);
+    view.addEventListener('did-navigate-in-page', updateInput);
+    view.addEventListener('did-finish-load', updateInput);
+
+    // Обработка контекстного меню (если нужно)
+    view.addEventListener('ipc-message', (event) => {
+      if (event.channel === 'context-link') {
+        const [url, x, y] = event.args;
+        if (url) showContextMenu(url, x, y);
+      }
+    });
+
+    function showContextMenu(link, x = 100, y = 100) {
+      const existing = document.querySelector('.context-menu');
+      if (existing) existing.remove();
+
+      const menu = document.createElement('div');
+      menu.className = 'context-menu';
+      menu.textContent = 'Открыть в новой вкладке';
+
+      Object.assign(menu.style, {
+        left: `${x}px`,
+        top: `${y}px`
+      });
+
+      menu.onclick = () => {
+        ipcRenderer.send('return-tab-to-main', link);
+        menu.remove();
+        window.close();
+      };
+
+      document.body.appendChild(menu);
+
+      const closeMenu = (e) => {
+        if (!menu.contains(e.target)) {
+          menu.remove();
+          document.removeEventListener('mousedown', closeMenu);
+        }
+      };
+
+      setTimeout(() => document.addEventListener('mousedown', closeMenu), 0);
+    }
+
+    // По умолчанию загрузим домашнюю страницу
+    const homePath = `file://${path.join(__dirname, 'home.html')}`;
+    currentUrl = homePath;
+    view.src = homePath;
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Браузер</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --fg: #e0e0e0;
+      --accent: #0a84ff;
+      --accent-hover: #0066ff;
+      --tab-bg: #2a2a2a;
+      --tab-active: #3d3d3d;
+      --border: #444;
+
+      /* Меню вкладок */
+      --tabmenu-bg: #2e2e2ecc;
+      --tabmenu-text: #e0e0e0;
+      --tabmenu-border: #555;
+      --tabmenu-tab-bg: #333;
+      --tabmenu-tab-hover: var(--accent-hover);
+      --tabmenu-tab-active-bg: var(--tab-active);
+      --tabmenu-tab-text: #fff;
+
+      /* Навигация */
+      --nav-bg-start-r: 18;
+      --nav-bg-start-g: 18;
+      --nav-bg-start-b: 18;
+      --nav-bg-start-a: 0.9;
+      --nav-bg-end-r: 30;
+      --nav-bg-end-g: 30;
+      --nav-bg-end-b: 30;
+      --nav-bg-end-a: 0.85;
+
+      /* Кнопки */
+      --btn-bg: #222;
+      --btn-bg-hover: var(--accent);
+      --btn-color: var(--fg);
+      --btn-color-hover: #fff;
+
+      --input-bg: #1e1e1e;
+      --input-border: #444;
+      --input-color: var(--fg);
+      --input-placeholder: #888;
+    }
+
+  .light-theme {
+      --bg: #f9f9f9;
+      --fg: #222222;
+      --accent: #007aff;
+      --accent-hover: #005fcc;
+      --tab-bg: #f0f0f0;
+      --tab-active: #d0d0d0;
+      --border: #ccc;
+
+      /* Меню вкладок */
+      --tabmenu-bg: #ffffffdd;
+      --tabmenu-text: #222;
+      --tabmenu-border: #ccc;
+      --tabmenu-tab-bg: #eee;
+      --tabmenu-tab-hover: var(--accent-hover);
+      --tabmenu-tab-active-bg: var(--tab-active);
+      --tabmenu-tab-text: #222;
+
+      /* Навигация */
+      --nav-bg-start-r: 255;
+      --nav-bg-start-g: 255;
+      --nav-bg-start-b: 255;
+      --nav-bg-start-a: 0.9;
+      --nav-bg-end-r: 230;
+      --nav-bg-end-g: 230;
+      --nav-bg-end-b: 230;
+      --nav-bg-end-a: 0.85;
+
+      /* Кнопки */
+      --btn-bg: #e0e0e0;
+      --btn-bg-hover: var(--accent);
+      --btn-color: #222;
+      --btn-color-hover: #fff;
+
+      --input-bg: #fff;
+      --input-border: #ccc;
+      --input-color: #222;
+      --input-placeholder: #aaa;
+    }
+
+  * {
+      box-sizing: border-box;
+      transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    }
+
+  html, body {
+      margin: 0;
+      height: 100%;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+  #nav {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 20px;
+      background: linear-gradient(to right,
+        rgba(var(--nav-bg-start-r), var(--nav-bg-start-g), var(--nav-bg-start-b), var(--nav-bg-start-a)),
+        rgba(var(--nav-bg-end-r), var(--nav-bg-end-g), var(--nav-bg-end-b), var(--nav-bg-end-a))
+      );
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 6px 14px rgba(0,0,0,0.4);
+      z-index: 10;
+      color: var(--fg);
+      border-radius: 0 0 12px 12px;
+    }
+
+  #url {
+      flex: 1 1 250px;
+      min-width: 180px;
+      padding: 10px 18px;
+      background: var(--input-bg);
+      border: 2px solid var(--input-border);
+      border-radius: 16px;
+      color: var(--input-color);
+      font-size: 16px;
+      outline-offset: 2px;
+      outline-color: transparent;
+      font-weight: 600;
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.15);
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+  #url::placeholder {
+      color: var(--input-placeholder);
+      font-weight: 400;
+    }
+
+  #url:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      outline-color: var(--accent);
+    }
+
+  #zoom-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: nowrap;
+      min-width: 110px;
+      flex-shrink: 0;
+    }
+
+  #zoom-level {
+      font-size: 14px;
+      color: var(--input-placeholder);
+      min-width: 42px;
+      text-align: center;
+      font-weight: 600;
+      user-select: none;
+    }
+
+    button {
+      background: var(--btn-bg);
+      color: var(--btn-color);
+      border: none;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition:
+        background-color 0.25s ease,
+        color 0.3s ease,
+        box-shadow 0.3s ease;
+      will-change: background-color, box-shadow;
+    }
+
+    button:hover {
+      background-color: var(--btn-bg-hover);
+      color: var(--btn-color-hover);
+      box-shadow: 0 4px 14px var(--btn-bg-hover);
+    }
+
+    #tabToggle {
+      font-size: 20px;
+      padding: 8px 14px;
+      border-radius: 16px;
+      transition-delay: 0s;
+    }
+
+    #back, #forward, #reload, #go {
+      min-width: 50px;
+    }
+
+    #themeToggle {
+      font-size: 20px;
+      padding: 8px 14px;
+      border-radius: 50%;
+      line-height: 1;
+      transition-delay: 0s;
+    }
+
+    #themeToggle:hover {
+      background-color: var(--accent-hover);
+      box-shadow: 0 0 10px var(--accent-hover);
+      color: #fff;
+    }
+
+    /* Меню вкладок */
+
+    #tabMenu {
+      position: absolute;
+      top: 80px;
+      left: 10px;
+      background: var(--tabmenu-bg);
+      color: var(--tabmenu-text);
+      border: 1px solid var(--tabmenu-border);
+      border-radius: 14px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      z-index: 999;
+      min-width: 280px;
+      max-width: 340px;
+      max-height: 75vh;
+      overflow-y: auto;
+      opacity: 0;
+      transform: translateY(-12px);
+      pointer-events: none;
+      transition:
+        opacity 0.3s ease,
+        transform 0.3s ease,
+        background 0.3s ease,
+        border-color 0.3s ease,
+        color 0.3s ease;
+    }
+
+    #tabMenu.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .tab-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 18px;
+      margin-bottom: 10px;
+      background: var(--tabmenu-tab-bg);
+      border-radius: 18px;
+      cursor: pointer;
+      position: relative;
+      transition: background 0.35s ease, box-shadow 0.35s ease, color 0.35s ease;
+      color: var(--tabmenu-tab-text);
+      box-shadow:
+        0 2px 5px rgba(0, 0, 0, 0.15),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+
+    .tab-btn:hover {
+      background: var(--accent-hover);
+      color: #fff;
+      box-shadow:
+        0 8px 20px var(--accent-hover),
+        inset 0 0 0 1.5px var(--accent-hover);
+    }
+
+    .tab-btn.active {
+      background: var(--accent);
+      color: #fff;
+      box-shadow:
+        0 10px 26px var(--accent),
+        inset 0 0 0 2px var(--accent);
+    }
+
+    .tab-btn span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 700;
+      font-size: 16px;
+      user-select: none;
+    }
+
+    .tab-btn div {
+      display: flex;
+      gap: 10px;
+      position: absolute;
+      right: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .close-tab, .detach-tab {
+      cursor: pointer;
+      font-size: 18px;
+      color: rgba(255, 255, 255, 0.75);
+      transition: color 0.3s ease;
+      padding: 6px;
+      border-radius: 10px;
+      user-select: none;
+    }
+
+    .close-tab:hover, .detach-tab:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    /* Scrollbar для меню вкладок */
+    #tabMenu::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    #tabMenu::-webkit-scrollbar-track {
+      background: rgba(0,0,0,0.1);
+      border-radius: 8px;
+    }
+
+    #tabMenu::-webkit-scrollbar-thumb {
+      background-color: rgba(10,132,255,0.4);
+      border-radius: 8px;
+      transition: background-color 0.3s ease;
+    }
+
+    #tabMenu::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(10,132,255,0.7);
+    }
+
+    /* Контент и виджеты — оставляем без изменений */
+    #content {
+      flex: 1;
+      position: relative;
+    }
+
+    .view {
+      position: absolute;
+      inset: 0;
+      display: none;
+    }
+
+    .view.active {
+      display: block;
+    }
+
+    webview {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    #previewPopup {
+      position: fixed;
+      width: 320px;
+      height: 180px;
+      pointer-events: none;
+      z-index: 9999;
+      display: block;
+      opacity: 0;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      transform: scale(0.95);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 0 16px rgba(0, 0, 0, 0.6);
+      border: 1px solid #222;
+      background: #111;
+    }
+
+    #previewPopup.show {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    #previewView {
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    /* Панель виджетов */
+    .widget-panel {
+      position: fixed;
+      top: 70px;
+      left: 0;
+      width: 220px;
+      height: calc(100% - 70px);
+      background: var(--tabmenu-bg);
+      border-right: 1px solid var(--tabmenu-border);
+      padding: 14px 18px;
+      box-sizing: border-box;
+      overflow-y: auto;
+      color: var(--tabmenu-text);
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+      z-index: 1000;
+    }
+
+    .widget-panel.visible {
+      transform: translateX(0);
+    }
+
+    .widget-panel h3 {
+      margin-top: 0;
+      margin-bottom: 14px;
+      font-weight: 700;
+      font-size: 20px;
+    }
+
+    .widget-panel label {
+      display: block;
+      margin-bottom: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    /* Адаптив */
+    @media (max-width: 600px) {
+      #nav {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+      }
+
+      #zoom-controls {
+        justify-content: flex-start;
+      }
+
+      #url {
+        width: 100%;
+      }
+
+      #zoom-controls {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
+
+      #chatPanel {
+        position: fixed;
+        top: 80px;
+        left: 60px;
+        width: 400px;
+        height: 600px;
+        background: var(--tabmenu-bg);
+        border: 1px solid var(--tabmenu-border);
+        border-radius: 14px;
+        box-shadow: 0 10px 24px rgba(0, 0, 0, 0.6);
+        z-index: 1001;
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      #chatPanel.visible {
+        display: flex;
+      }
+
+      #chatTabs {
+        display: flex;
+        background: var(--tabmenu-tab-bg);
+        border-bottom: 1px solid var(--tabmenu-border);
+      }
+
+      #chatTabs button {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        background: transparent;
+        color: var(--fg);
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      #chatTabs button:hover {
+        background: var(--accent-hover);
+        color: #fff;
+      }
+
+      #chatView {
+        flex: 1;
+        border: none;
+      }
+
+      #chatPanel {
+        /* ... существующие стили ... */
+        transform: translateY(-20px);
+        opacity: 0;
+        transition: opacity 0.3s ease, transform 0.3s ease;
+      }
+
+      #chatPanel.visible {
+        display: flex;
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      .icon {
+      width: 24px;   /* или любой нужный размер */
+      height: 24px;
+      object-fit: contain;
+      filter: invert(1); /* делаем белыми по умолчанию (для тёмной темы) */
+      transition: filter 0.3s ease;
+    }
+
+    .light-theme .icon {
+      filter: invert(0); /* чёрные на светлой теме */
+    }
+
+    #gptPanel {
+      position: fixed;
+      top: 100px;
+      right: 40px;
+      width: 400px;
+      height: 600px;
+      background: var(--tabmenu-bg);
+      border: 1px solid var(--tabmenu-border);
+      border-radius: 14px;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.6);
+      z-index: 1001;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      transform: translateY(-20px);
+      opacity: 0;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    #gptPanel.visible {
+      display: flex;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    #gptTabs {
+      display: flex;
+      background: var(--tabmenu-tab-bg);
+      border-bottom: 1px solid var(--tabmenu-border);
+    }
+
+    #gptTabs button {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      background: transparent;
+      color: var(--fg);
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    #gptTabs button:hover {
+      background: var(--accent-hover);
+      color: #fff;
+    }
+
+    #gptView {
+      flex: 1;
+      border: none;
+    }
+
+    #gptResizeHandle {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: 18px;
+      height: 18px;
+      cursor: nwse-resize;
+      background: transparent;
+      z-index: 10;
+    }
+
+  </style>
+</head>
+<body>
+  <div id="nav">
+    <button id="tabToggle">
+      <img src="icons/menu.png" alt="Назад" class="icon">
+    </button>
+    <button id="back">
+      <img src="icons/back.png" alt="Назад" class="icon">
+    </button>
+    <button id="forward">
+      <img src="icons/forwaRD.png" alt="Назад" class="icon">
+    </button>
+    <button id="reload">⟳
+      
+    </button>
+    <input id="url" placeholder="Введите URL" />
+    <div id="zoom-controls">
+      <button id="zoomOut">−</button>
+      <span id="zoom-level">100%</span>
+      <button id="zoomIn">+</button>
+    </div>
+    <button id="go">Перейти</button>
+    <button id="themeToggle" title="Переключить тему">🌓</button>
+    <button id="chatToggle" title="Чаты">
+      <img src="icons/message.png" alt="Назад" class="icon">
+    </button>
+    <button id="gptToggle" title="GPT Чаты">
+      <img src="icons/logo_chat_gpt_icon_267516(1).png" alt="GPT" class="icon">
+    </button>
+  </div>
+
+  <div id="tabMenu"></div>
+  <div id="content"></div>
+
+  <!-- Новая панель виджетов -->
+                    
+  <div id="previewPopup">
+    <webview id="previewView" partition="persist:preview" preload="preload.js"></webview>
+  </div>
+
+  <div id="chatPanel">
+    
+  <div id="chatHeader" style="cursor: move; padding: 10px; font-weight: bold; background: var(--tabmenu-tab-bg); border-bottom: 1px solid var(--tabmenu-border); user-select: none;">
+  🔧 Чат
+  </div>
+  <div id="chatTabs">
+    <button data-url="https://m.vk.com">VK</button>
+    <button data-url="https://web.telegram.org">Telegram</button>
+    <button data-url="https://discord.com/app">Discord</button>
+  </div>
+  <webview id="chatView" partition="persist:chats"></webview>
+</div>
+
+<div id="gptPanel">
+  <div id="gptHeader" style="cursor: move; padding: 10px; font-weight: bold; background: var(--tabmenu-tab-bg); border-bottom: 1px solid var(--tabmenu-border); user-select: none;">
+    🤖 GPT Чаты
+  </div>
+  <div id="gptTabs">
+    <button data-url="https://chat.openai.com">OpenAI</button>
+    <button data-url="https://ya.ru/ai/gpt">Яндекс GPT</button>
+    <button data-url="https://giga.chat">GigaChat</button>
+    <button data-url="https://chataibot.ru/?utm_source=ya3&utm_medium=cpc&utm_campaign=114923085&utm_content=17182728180">ChatAi</button>
+  </div>
+  <webview id="gptView" partition="persist:gptchats"></webview>
+  <div id="gptResizeHandle"></div>
+</div>
+  <script src="renderer.js"></script>
+  <script>
+    const themeToggleBtn = document.getElementById('themeToggle');
+    const body = document.body;
+
+    let isLight = false;
+
+    themeToggleBtn.addEventListener('click', () => {
+      isLight = !isLight;
+      if (isLight) {
+        body.classList.add('light-theme');
+      } else {
+        body.classList.remove('light-theme');
+      }
+    });
+  </script>
+
+  <script>
+  const chatToggle = document.getElementById('chatToggle');
+  const chatPanel = document.getElementById('chatPanel');
+  const chatView = document.getElementById('chatView');
+  const chatButtons = document.querySelectorAll('#chatTabs button');
+
+  chatToggle.addEventListener('click', () => {
+    chatPanel.classList.toggle('visible');
+    if (!chatView.src) {
+      chatView.src = "https://m.vk.com";
+    }
+  });
+
+  chatButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const url = btn.getAttribute('data-url');
+      chatView.src = url;
+    });
+  });
+</script>
+
+<script>
+  const chatPanelDrag = document.getElementById('chatPanel');
+  const chatHeader = document.getElementById('chatHeader');
+  let offsetX = 0, offsetY = 0, isDragging = false;
+
+  chatHeader.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    const rect = chatPanelDrag.getBoundingClientRect();
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
+    chatPanelDrag.style.transition = "none";
+  });
+
+  document.addEventListener('mouseup', () => {
+    isDragging = false;
+    chatPanelDrag.style.transition = "";
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const x = e.clientX - offsetX;
+    const y = e.clientY - offsetY;
+
+    chatPanelDrag.style.left = `${x}px`;
+    chatPanelDrag.style.top = `${y}px`;
+  });
+</script>
+
+<script>
+  const gptToggle = document.getElementById('gptToggle');
+  const gptPanel = document.getElementById('gptPanel');
+  const gptView = document.getElementById('gptView');
+  const gptButtons = document.querySelectorAll('#gptTabs button');
+  const gptHeader = document.getElementById('gptHeader');
+
+  let offsetGX = 0, offsetGY = 0, isGPTDragging = false;
+
+  // Открытие/закрытие панели GPT
+  gptToggle.addEventListener('click', () => {
+    gptPanel.classList.toggle('visible');
+    if (!gptView.src) {
+      gptView.src = "https://chat.openai.com"; // начальный URL
+    }
+  });
+
+  // Переключение между чатами
+  gptButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const url = btn.getAttribute('data-url');
+      gptView.src = url;
+    });
+  });
+
+  // Перетаскивание панели GPT
+  gptHeader.addEventListener('mousedown', (e) => {
+    isGPTDragging = true;
+    const rect = gptPanel.getBoundingClientRect();
+    offsetGX = e.clientX - rect.left;
+    offsetGY = e.clientY - rect.top;
+    gptPanel.style.transition = "none";
+  });
+
+  document.addEventListener('mouseup', () => {
+    isGPTDragging = false;
+    gptPanel.style.transition = "";
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isGPTDragging) return;
+    const x = e.clientX - offsetGX;
+    const y = e.clientY - offsetGY;
+    gptPanel.style.left = `${x}px`;
+    gptPanel.style.top = `${y}px`;
+  });
+</script>
+
+
+<script>
+  const startPageHTML = `
+  <style>
+    /* Основной контейнер с плавным анимированным градиентом */
+    #content {
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(270deg, #6a11cb, #2575fc, #6a11cb);
+      background-size: 600% 600%;
+      animation: gradientShift 20s ease infinite;
+      color: white;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      position: relative;
+      text-align: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    /* Текст с плавным появлением и лёгким движением */
+    .fadeInText {
+      font-size: 2.5rem;
+      max-width: 600px;
+      opacity: 0;
+      animation: fadeInMoveUp 3s ease forwards;
+      line-height: 1.4;
+      text-shadow: 0 0 10px rgba(0, 0, 0, 0.35);
+    }
+
+    /* Анимация движения градиента */
+    @keyframes gradientShift {
+      0% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+      100% {
+        background-position: 0% 50%;
+      }
+    }
+
+    /* Плавное появление с лёгким подъёмом */
+    @keyframes fadeInMoveUp {
+      0% {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Стиль шариков с эффектом размытия и пульса */
+    .bubble {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.25);
+      filter: blur(1px);
+      animation: bubbleMovePulse 8s ease-in-out infinite;
+      bottom: -100px;
+      will-change: transform, opacity;
+      transition: background 0.3s ease;
+    }
+
+    .bubble:hover {
+      background: rgba(255, 255, 255, 0.25);
+      box-shadow: 0 0 35px rgba(255, 255, 255, 0.5);
+      animation-play-state: paused;
+      cursor: default;
+      transform: scale(1.1);
+    }
+
+    /* Анимация движения вверх и пульса */
+    @keyframes bubbleMovePulse {
+      0% {
+        transform: translateY(0) scale(1);
+        opacity: 0;
+      }
+      20% {
+        opacity: 0.8;
+      }
+      50% {
+        transform: translateY(-55vh) scale(1.05);
+        opacity: 1;
+      }
+      80% {
+        opacity: 0.8;
+      }
+      100% {
+        transform: translateY(-110vh) scale(1.1);
+        opacity: 0;
+      }
+    }
+  </style>
+
+  <div class="fadeInText">
+    Страничка загрузки!<br>
+    ^_^
+  </div>
+
+  <div class="bubble" style="width: 80px; height: 80px; left: 10%; animation-delay: 0s;"></div>
+  <div class="bubble" style="width: 50px; height: 50px; left: 25%; animation-delay: 2s;"></div>
+  <div class="bubble" style="width: 100px; height: 100px; left: 40%; animation-delay: 4s;"></div>
+  <div class="bubble" style="width: 60px; height: 60px; left: 70%; animation-delay: 1s;"></div>
+  <div class="bubble" style="width: 90px; height: 90px; left: 80%; animation-delay: 3s;"></div>
+`;
+
+
+  document.getElementById('content').innerHTML = startPageHTML;
+</script>
+</body>
+</html>
